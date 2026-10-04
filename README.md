@@ -11,10 +11,11 @@
 - 加载 scikit-learn 内置 Wine 数据集，并检查字段类型和缺失值；
 - 将三个数字目标映射为 `class_1`、`class_2`、`class_3`；
 - 使用 `stratify=Y` 按 8:2 分层划分训练集和测试集，并断言两者索引没有重叠；
-- 绘制训练集类别数量、`alcohol` 与 `proline` 分类散点图，以及两个特征的直方图和核密度图；
+- 输出训练特征 `(142, 13)` 和测试特征 `(36, 13)` 的形状；
+- 仅使用训练集绘制类别数量、`alcohol` 与 `proline` 分类散点图，以及两个特征的直方图和核密度图，避免测试集信息泄漏；
 - 将图表保存至 `reports/wine数据集探索/wine数据集探索.png`。
 
-初步观察：三个类别数量较均衡；`proline` 呈偏态分布；类别之间存在重叠，但 `alcohol` 与 `proline` 仍表现出一定区分度。
+脚本已拆分为 `load_data()`、`split_data()`、`plot_eda()` 和 `main()`，只有直接运行文件时才会执行完整流程。初步观察：三个类别数量较均衡；`proline` 呈偏态分布；类别之间存在重叠，但 `alcohol` 与 `proline` 仍表现出一定区分度。
 
 ### Boston Housing 数据探索
 
@@ -22,18 +23,28 @@
 
 - 输出 506 条观测、14 个字段的数据总览和描述性统计；
 - 统计每列缺失值数量与占比，以及包含缺失值的行数；
+- 使用 `value_counts(dropna=False)` 统计 `ZN`，保留缺失值计数；
 - 筛选 `RM > 6` 的观测，并按 `CHAS` 分组计算 `MEDV` 均值；
 - 统计并绘制 `ZN` 的直方图与核密度图；
-- 将图表保存至 `reports/ZN频数统计.png`。
+- 将图表保存至 `reports/exercises/ZN频数统计.png`。
 
-CSV 中的 `NA` 会被 Pandas 自动解析为缺失值。目前共有 112 行包含缺失值；`CRIM`、`ZN`、`INDUS`、`CHAS`、`AGE` 和 `LSTAT` 各缺失 20 个值。
+脚本已拆分为 `load_data()`、`na_count()`、`plot_data()` 和 `main()`。CSV 中的 `NA` 会被 Pandas 自动解析为缺失值。目前共有 112 行包含缺失值；`CRIM`、`ZN`、`INDUS`、`CHAS`、`AGE` 和 `LSTAT` 各缺失 20 个值（约 3.953%）。
 
 ### NumPy 数组练习
 
-`exercises/数组练习.py` 使用矩阵乘法计算线性预测 `x @ w + b`，再计算预测值与真实值之间的均方误差（Mean Squared Error, MSE）。当前示例输出为：
+`exercises/数组练习.py` 使用矩阵乘法计算线性预测 `x @ w + b`，再计算预测值与真实值之间的均方误差（Mean Squared Error, MSE）。脚本还会检查各数组形状，并练习通过 `axis=0` 和 `axis=1` 分别计算均值。当前示例输出为：
 
 ```text
-[ 8 18 28] 2.0
+y_hat: [ 8 18 28] MSE: 2.0
+
+x: (3, 2)
+y: (3,)
+w: (2,)
+y_hat: (3,)
+err: (3,)
+
+x_mean_axis=0: [2. 3.]
+x_mean_axis=1: [0.5 2.5 4.5]
 ```
 
 > 当前项目尚未实现参数训练、完整模型评估流程或自动化测试。
@@ -46,7 +57,7 @@ CSV 中的 `NA` 会被 Pandas 自动解析为缺失值。目前共有 112 行包
 
 ### Boston Housing 的 ZN 分布
 
-![ZN 频数统计](reports/ZN频数统计.png)
+![ZN 频数统计](reports/exercises/ZN频数统计.png)
 
 ## 项目结构
 
@@ -58,9 +69,10 @@ ml-foundation/
 │   ├── exercises.py
 │   └── 数组练习.py
 ├── reports/
-│   ├── wine数据集探索/
-│   │   └── wine数据集探索.png
-│   └── ZN频数统计.png
+│   ├── exercises/
+│   │   └── ZN频数统计.png
+│   └── wine数据集探索/
+│       └── wine数据集探索.png
 ├── scr/
 │   └── train.py
 ├── environment.yml
@@ -90,13 +102,7 @@ conda activate MACHINELEARING
 
 ## 运行
 
-绘图脚本目前不会自动创建输出目录。首次运行前，在仓库根目录执行：
-
-```powershell
-New-Item -ItemType Directory -Force -Path reports, "reports/wine数据集探索" | Out-Null
-```
-
-激活环境后可顺序运行全部练习：
+两个绘图脚本会自动创建各自的输出目录。激活环境后，在仓库根目录顺序运行全部练习：
 
 ```powershell
 conda activate MACHINELEARING
