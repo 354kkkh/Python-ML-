@@ -28,9 +28,17 @@ def split_data(df):
         X, Y, test_size=0.2, random_state=2026, stratify=Y
     )
     # 索引集合交集是否为空（是否重复索引）
-    overlap = X_train.index.intersection(X_test.index)
-    assert len(overlap) == 0, "训练集和测试集存在重叠索引"  # condition为True则程序继续，否则报错并抛出message
-    return X_train, X_test, Y_train, Y_test
+    overlap1 = X_train.index.intersection(X_test.index)
+    assert len(overlap1) == 0, "训练集和测试集存在重叠索引"  # condition为True则程序继续，否则报错并抛出message
+
+    #在已有的开发数据X_train、Y_train中再次划分拟合113行和验证29行
+    x_small_fit, x_small_test, y_small_fit, y_small_test = train_test_split(
+        X_train, Y_train, test_size=0.2, random_state=2026, stratify=Y_train
+    )
+    overlap2 = x_small_test.index.intersection(x_small_fit.index)
+    assert len(overlap2) == 0, "训练集和测试集存在重叠索引"  # condition为True则程序继续，否则报错并抛出message
+
+    return X_train, X_test, Y_train, Y_test, x_small_fit, x_small_test, y_small_fit, y_small_test
 
 #作图进行数据探索
 def plot_eda(Y_train, tr_df, output_dir):
@@ -66,7 +74,8 @@ def main():
     print('特征名：\n', df.columns, '\n 数据类型： \n', df.dtypes, '\n 数据：\n', df,
           '\n 缺失值统计: \n', df.isna().sum())
 
-    X_train, X_test, Y_train, Y_test = split_data(df)
+    X_train, X_test, Y_train, Y_test, x_small_fit, x_small_test, y_small_fit, y_small_test = split_data(df)
+    print('\n训练集中用于验证数据的x，y维度：', x_small_test.shape, y_small_test.shape)
     print("训练特征形状：", X_train.shape)
     print("测试特征形状：", X_test.shape)
 
