@@ -24,15 +24,16 @@ def logistic_predict(x_fit, y_fit, x_test, y_test):
         ('classifier', LogisticRegression(max_iter=1000))
     ])
 
-    logistic.fit(x_fit, y_fit)                  #拟合模型,自动保存到pipeline中
+    logistic.fit(x_fit, y_fit)                        #拟合模型,自动保存到pipeline中
     pre_log = logistic.predict(x_test)
+    pre_ord_classes = logistic.classes_               #确定概率预测列的列名
     pre_log_pro = logistic.predict_proba(x_test)
     pre_log_sco = logistic.score(x_test, y_test)
     macro_f1 = f1_score(y_test, pre_log, average='macro')
     cm = confusion_matrix(y_test, pre_log, labels=[0,1,2])
-    return pre_log, pre_log_pro, pre_log_sco, macro_f1, cm
+    return pre_log, pre_ord_classes, pre_log_pro, pre_log_sco, macro_f1, cm
 
-def plot_cm(cm, path, str):         #混淆矩阵可视化
+def plot_cm(cm, path, str):               #混淆矩阵可视化
     disp = ConfusionMatrixDisplay(confusion_matrix=cm)
     disp.plot()
     plt.savefig(path / str)
@@ -49,9 +50,10 @@ def main():
     print('预测结果：', predic_dum, '\n预测准确率：', predic_dum_sco,
           '\n宏平均：', macro_f1_dum, '\n混淆矩阵：\n', cm_dum)
 
-    pre_log, pre_log_pro, pre_log_sco, macro_f1_log, cm_log = logistic_predict(x_small_fit, y_small_fit, x_small_test, y_small_test)
-    print('\n逻辑回归预测结果：', pre_log, '\n逻辑回归所得概率：', pre_log_pro,
+    pre_log, classes, pre_log_pro, pre_log_sco, macro_f1_log, cm_log = logistic_predict(x_small_fit, y_small_fit, x_small_test, y_small_test)
+    print('\n逻辑回归预测结果：', pre_log, '\nclass:', classes, '\n逻辑回归所得概率：', pre_log_pro,
           '\n逻辑回归预测准确率：', pre_log_sco, '\n逻辑回归宏平均：', macro_f1_log, '\n混淆矩阵：\n', cm_log)
+    pro_df = pd.DataFrame(pre_log_pro, columns=classes)
 
     plot_cm(cm_dum, out, 'cm_dum.png')           #保存混淆矩阵图片
     plot_cm(cm_log, out, 'cm_log.png')
@@ -85,6 +87,7 @@ def main():
         "dummy_pred": predic_dum,
         "logistic_pred": pre_log,
     })
+    predictions = pd.concat([predictions, pro_df], axis=1)
 
     # 每条逻辑回归预测是否正确
     predictions["logistic_correct"] = np.where(predictions["y_true"] == predictions["logistic_pred"], True, False)
@@ -93,6 +96,14 @@ def main():
 
     print("\n指标表：\n", metrics)
     print("\n验证预测前5行：\n", predictions.head())
+    print('\nLogistic预测错误数据：\n', predictions[~(predictions['y_true'] == predictions['logistic_pred'])])
+    print(df.iloc[134])
+    fit_df = x_small_fit.copy()
+    fit_df["target"] = y_small_fit
+    features = ["alcohol", "flavanoids"]
+
+    print(df.loc[134, features])
+    print(fit_df.groupby("target")[features].agg(["mean", "min", "max"]).loc[[1, 2]])
 
 if __name__ == '__main__':
     main()
