@@ -1,0 +1,16 @@
+|--- proline <= 755.000000
+|   |--- color_intensity <= 4.130000
+|   |   |--- class: 1
+|   |--- color_intensity >  4.130000
+|   |   |--- flavanoids <= 1.580000
+|   |   |   |--- class: 2
+|   |   |--- flavanoids >  1.580000
+|   |   |   |--- class: 1
+|--- proline >  755.000000
+|   |--- od280/od315_of_diluted_wines <= 2.285000
+|   |   |--- total_phenols <= 1.240000
+|   |   |   |--- class: 1
+|   |   |--- total_phenols >  1.240000
+|   |   |   |--- class: 2
+|   |--- od280/od315_of_diluted_wines >  2.285000
+|   |   |--- class: 0
