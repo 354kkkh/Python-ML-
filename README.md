@@ -1,8 +1,8 @@
 # ML Foundation
 
-一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线模型和 Seaborn/Matplotlib 可视化。
+一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照，以及 Seaborn/Matplotlib 可视化。
 
-## 学习进度（更新至2026-10-15）
+## 学习进度（更新至2026-10-22）
 
 ### Wine 数据集探索
 
@@ -12,7 +12,7 @@
 - 将三个数字目标映射为 `class_1`、`class_2`、`class_3`；
 - 使用 `stratify=Y` 和随机种子 `2026`，按 8:2 分层划分开发数据和最终测试数据，并断言两者索引没有重叠；
 - 将 142 条开发数据再次按 8:2 分层划分为 113 条拟合数据和 29 条验证数据；最终测试集保留 36 条数据；
-- 仅使用训练集绘制类别数量、`alcohol` 与 `proline` 分类散点图，以及两个特征的直方图和核密度图，避免测试集信息泄漏；
+- 仅使用142条开发数据绘制类别数量、`alcohol` 与 `proline` 分类散点图，以及两个特征的直方图和核密度图，最终测试数据不参与探索；
 - 将图表保存至 `reports/wine数据集探索/wine数据集探索.png`。
 
 脚本已拆分为 `load_data()`、`split_data()`、`plot_eda()` 和 `main()`，只有直接运行文件时才会执行完整流程。初步观察：三个类别数量较均衡；`proline` 呈偏态分布；类别之间存在重叠，但 `alcohol` 与 `proline` 仍表现出一定区分度。
@@ -48,6 +48,29 @@
 | validation | 29 | 0.9310 | 0.9274 |
 
 两行指标保存到`reports/decision_tree/metrics.csv`，真实特征名称的文本规则保存到`reports/decision_tree/tree_rules.txt`。控制台还输出实际树深度、叶节点数和一个拟合样本的特征及预测，供手工核对分类路径。以上是固定配置、单次划分的结果，不据此判断稳定泛化优势。
+
+### Wine 四方案统一比较
+
+[scr/compare_models.py](scr/compare_models.py)复用`train.py`的两次分层划分，固定13个特征及随机种子2026。四个方案各在113条数据上拟合一次，再复用同一个模型分别评价113条拟合数据和29条验证数据；逻辑回归的Scaler只在113条拟合数据上学习参数。
+
+| 方案 | 固定配置 | 拟合Accuracy | 拟合Macro F1 | 验证Accuracy | 验证Macro F1 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Dummy | `strategy="most_frequent"` | 0.3982 | 0.1899 | 0.4138 | 0.1951 |
+| LogisticRegression | StandardScaler＋`max_iter=1000` | 1.0000 | 1.0000 | 0.9655 | 0.9644 |
+| Tree_depth3 | `max_depth=3, random_state=2026` | 0.9912 | 0.9919 | 0.9310 | 0.9274 |
+| Tree_unrestricted | `max_depth=None, random_state=2026` | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+
+深度3树的实际深度为3、叶节点数为6；不限深度树的实际深度为4、叶节点数为7。Accuracy和Macro F1采用统一计算方式，Macro F1显式使用类别`[0,1,2]`。
+
+脚本输出：
+
+- [metrics.csv](reports/model_comparison/metrics.csv)：四方案的`fit/validation`各一行，共8行，包含模型名、数据部分、样本数和两个指标。
+- [validation_predictions.csv](reports/model_comparison/validation_predictions.csv)：同一批29条验证记录，包含Wine原始`sample_index`、`y_true`及四列预测；样本顺序与验证数据一致。
+- 控制台输出两棵树的结构、两张表和深度3树的混淆矩阵；矩阵行是真实类别、列是预测类别，顺序均为`[0,1,2]`，总数29，对角线之和27。
+
+深度3树错分原索引43和141，逻辑回归错分134，不限深度树在这29条验证数据上全部正确。单条样本约改变3.45个百分点的验证Accuracy，当前排名仅适用于本次固定划分；验证分数1.0000不代表稳定泛化优势。
+
+36条最终测试数据没有参与拟合、预测、评分或方案选择。五折交叉验证目前只学习数据流程与每折内预处理，尚未实施CV或参数搜索，当前指标全部来自原113／29划分。
 
 ### Boston Housing 数据探索
 
@@ -92,9 +115,9 @@ x_mean_axis=1: [0.5 2.5 4.5]
 更新后MSE： 149.1488
 ```
 
-数组脚本默认学习率仍为 `0.01`。[本周学习笔记](../学习路线记录/2026-10-12至10-18/10-12学习笔记.md)另记录了相同数据、每次零初始化的单步对照：学习率 `0.1` 时，MSE由382升至2940.08，说明过大的步长可能使损失增加。
+数组脚本默认学习率为 `0.01`，单步更新后MSE由382降至149.1488。相同数据、每次零初始化的实测对照中，学习率 `0.1` 时MSE由382升至2940.08，说明过大的步长可能使训练损失增加；这些单步结果不代表模型的泛化表现。
 
-> 当前项目已实现单步梯度下降和验证集基线比较，但尚未进行最终测试集评估，也未配置自动化测试。
+> 当前项目已实现单步梯度下降、四方案比较和验证预测对照；最终测试集继续保留，CV尚未实施，也未配置自动化测试框架。
 
 ## 可视化结果
 
@@ -135,11 +158,15 @@ ml-foundation/
 │   │   └── tree_rules.txt
 │   ├── exercises/
 │   │   └── ZN频数统计.png
+│   ├── model_comparison/
+│   │   ├── metrics.csv
+│   │   └── validation_predictions.csv
 │   └── wine数据集探索/
 │       └── wine数据集探索.png
 ├── scr/
 │   ├── baseline.py
 │   ├── baseline_review.py
+│   ├── compare_models.py
 │   ├── tree_baseline.py
 │   └── train.py
 ├── environment.yml
@@ -179,6 +206,7 @@ python scr/train.py
 python scr/baseline.py
 python scr/baseline_review.py
 python scr/tree_baseline.py
+python scr/compare_models.py
 python exercises/exercises.py
 python "exercises/数组练习.py"
 ```
@@ -192,6 +220,7 @@ $env:MPLBACKEND = 'Agg'
 & 'D:\conda_envs\ML\python.exe' scr/baseline.py
 & 'D:\conda_envs\ML\python.exe' scr/baseline_review.py
 & 'D:\conda_envs\ML\python.exe' scr/tree_baseline.py
+& 'D:\conda_envs\ML\python.exe' scr/compare_models.py
 & 'D:\conda_envs\ML\python.exe' exercises/exercises.py
 & 'D:\conda_envs\ML\python.exe' 'exercises/数组练习.py'
 ```
@@ -199,3 +228,4 @@ $env:MPLBACKEND = 'Agg'
 - `PYTHONIOENCODING=utf-8` 用于指定中文输出编码。
 - `MPLBACKEND=Agg` 让绘图脚本在无图形界面的环境中直接保存图片。
 - 命令顺序执行；重复运行会覆盖对应的同名报告和图片。
+- 本周新增比较结果可单独重跑`python scr/compare_models.py`；旧脚本未改动时无需为此重跑全部练习。

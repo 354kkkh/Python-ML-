@@ -1,0 +1,9 @@
+model,split,n_samples,accuracy,macro_f1
+Dummy,fit,113,0.39823008849557523,0.189873417721519
+Dummy,validation,29,0.41379310344827586,0.19512195121951217
+LogisticRegression,fit,113,1.0,1.0
+LogisticRegression,validation,29,0.9655172413793104,0.9644444444444445
+Tree_depth3,fit,113,0.9911504424778761,0.991892551892552
+Tree_depth3,validation,29,0.9310344827586207,0.9274074074074073
+Tree_unrestricted,fit,113,1.0,1.0
+Tree_unrestricted,validation,29,1.0,1.0
