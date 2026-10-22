@@ -1,6 +1,6 @@
 # ML Foundation
 
-一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照，以及 Seaborn/Matplotlib 可视化。
+一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照、单模型五折交叉验证，以及 Seaborn/Matplotlib 可视化。
 
 ## 学习进度（更新至2026-10-22）
 
@@ -70,7 +70,24 @@
 
 深度3树错分原索引43和141，逻辑回归错分134，不限深度树在这29条验证数据上全部正确。单条样本约改变3.45个百分点的验证Accuracy，当前排名仅适用于本次固定划分；验证分数1.0000不代表稳定泛化优势。
 
-36条最终测试数据没有参与拟合、预测、评分或方案选择。五折交叉验证目前只学习数据流程与每折内预处理，尚未实施CV或参数搜索，当前指标全部来自原113／29划分。
+36条最终测试数据没有参与拟合、预测、评分或方案选择。本节四方案指标全部来自原113／29划分；追加的单模型五折CV单独记录如下，未进行参数搜索。
+
+### Wine 单模型五折交叉验证
+
+[scr/cv_baseline.py](scr/cv_baseline.py)使用142条开发数据和13个特征，对`StandardScaler`＋`LogisticRegression(max_iter=1000)`的整条Pipeline执行五折CV。固定`StratifiedKFold(n_splits=5, shuffle=True, random_state=2026)`，保存五组位置索引并交给`cross_validate`复用。
+
+每折重新拟合Pipeline，Scaler只学习当轮训练折；前两折各有113条训练、29条验证，后三折各有114条训练、28条验证。只计算验证Accuracy与Macro F1，类别顺序明确为`[0,1,2]`，使用`n_jobs=1`、`return_train_score=False`和`error_score='raise'`。
+
+输出[reports/cross_validation/fold_metrics.csv](reports/cross_validation/fold_metrics.csv)，共5行，列为`fold、n_fit、n_validation、accuracy、macro_f1`。控制台另输出五折分数、均值与标准差；以下据现有CSV汇总，本次文档更新未重跑模型：
+
+| 指标 | 五折均值 | 折间标准差（ddof=0） |
+| --- | ---: | ---: |
+| Accuracy | 0.9719 | 0.0259 |
+| Macro F1 | 0.9721 | 0.0261 |
+
+CV结果中的`test_accuracy`、`test_macro_f1`表示当轮验证折成绩，不是保留的36条最终测试成绩。五折均值与原29条固定验证分数的评价安排不同，不能直接按数值大小判断哪次更好；折间标准差也不能直接当作置信区间。
+
+现有CSV已读回核对行数、折号、样本数和分数范围。开发集标签索引对齐、五轮验证位置恰好覆盖一次及独立新终端复跑的完成情况尚未确认，以上结果记录不替代最终验收。
 
 ### Boston Housing 数据探索
 
@@ -117,7 +134,7 @@ x_mean_axis=1: [0.5 2.5 4.5]
 
 数组脚本默认学习率为 `0.01`，单步更新后MSE由382降至149.1488。相同数据、每次零初始化的实测对照中，学习率 `0.1` 时MSE由382升至2940.08，说明过大的步长可能使训练损失增加；这些单步结果不代表模型的泛化表现。
 
-> 当前项目已实现单步梯度下降、四方案比较和验证预测对照；最终测试集继续保留，CV尚未实施，也未配置自动化测试框架。
+> 当前项目已有单步梯度下降、四方案比较、验证预测对照和单模型五折CV；最终测试集继续保留，尚未配置自动化测试框架。
 
 ## 可视化结果
 
@@ -153,6 +170,8 @@ ml-foundation/
 │   │   ├── cm_log.png
 │   │   ├── metrics.csv
 │   │   └── validation_predictions.csv
+│   ├── cross_validation/
+│   │   └── fold_metrics.csv
 │   ├── decision_tree/
 │   │   ├── metrics.csv
 │   │   └── tree_rules.txt
@@ -167,6 +186,7 @@ ml-foundation/
 │   ├── baseline.py
 │   ├── baseline_review.py
 │   ├── compare_models.py
+│   ├── cv_baseline.py
 │   ├── tree_baseline.py
 │   └── train.py
 ├── environment.yml
@@ -207,6 +227,7 @@ python scr/baseline.py
 python scr/baseline_review.py
 python scr/tree_baseline.py
 python scr/compare_models.py
+python scr/cv_baseline.py
 python exercises/exercises.py
 python "exercises/数组练习.py"
 ```
@@ -221,6 +242,7 @@ $env:MPLBACKEND = 'Agg'
 & 'D:\conda_envs\ML\python.exe' scr/baseline_review.py
 & 'D:\conda_envs\ML\python.exe' scr/tree_baseline.py
 & 'D:\conda_envs\ML\python.exe' scr/compare_models.py
+& 'D:\conda_envs\ML\python.exe' scr/cv_baseline.py
 & 'D:\conda_envs\ML\python.exe' exercises/exercises.py
 & 'D:\conda_envs\ML\python.exe' 'exercises/数组练习.py'
 ```
@@ -228,4 +250,4 @@ $env:MPLBACKEND = 'Agg'
 - `PYTHONIOENCODING=utf-8` 用于指定中文输出编码。
 - `MPLBACKEND=Agg` 让绘图脚本在无图形界面的环境中直接保存图片。
 - 命令顺序执行；重复运行会覆盖对应的同名报告和图片。
-- 本周新增比较结果可单独重跑`python scr/compare_models.py`；旧脚本未改动时无需为此重跑全部练习。
+- 比较结果可单独重跑`python scr/compare_models.py`，五折结果可单独重跑`python scr/cv_baseline.py`；旧脚本未改动时无需为此重跑全部练习。
