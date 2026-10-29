@@ -1,8 +1,8 @@
 # ML Foundation
 
-一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照、单模型五折交叉验证，以及 Seaborn/Matplotlib 可视化。
+一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照、单模型及四方案五折交叉验证、折外预测，以及 Seaborn/Matplotlib 可视化。
 
-## 学习进度（更新至2026-10-22）
+## 学习进度（更新至2026-10-29）
 
 ### Wine 数据集探索
 
@@ -70,7 +70,7 @@
 
 深度3树错分原索引43和141，逻辑回归错分134，不限深度树在这29条验证数据上全部正确。单条样本约改变3.45个百分点的验证Accuracy，当前排名仅适用于本次固定划分；验证分数1.0000不代表稳定泛化优势。
 
-36条最终测试数据没有参与拟合、预测、评分或方案选择。本节四方案指标全部来自原113／29划分；追加的单模型五折CV单独记录如下，未进行参数搜索。
+36条最终测试数据没有参与拟合、预测、评分或方案选择。本节四方案指标全部来自原113／29划分；单模型与四方案五折CV分别记录如下，不与本表混用，未进行参数搜索。
 
 ### Wine 单模型五折交叉验证
 
@@ -78,7 +78,7 @@
 
 每折重新拟合Pipeline，Scaler只学习当轮训练折；前两折各有113条训练、29条验证，后三折各有114条训练、28条验证。只计算验证Accuracy与Macro F1，类别顺序明确为`[0,1,2]`，使用`n_jobs=1`、`return_train_score=False`和`error_score='raise'`。
 
-输出[reports/cross_validation/fold_metrics.csv](reports/cross_validation/fold_metrics.csv)，共5行，列为`fold、n_fit、n_validation、accuracy、macro_f1`。控制台另输出五折分数、均值与标准差；以下据现有CSV汇总，本次文档更新未重跑模型：
+输出[reports/cross_validation/fold_metrics.csv](reports/cross_validation/fold_metrics.csv)，共5行，列为`fold、n_fit、n_validation、accuracy、macro_f1`。控制台另输出五折分数、均值与标准差；以下为该单模型实验的CSV汇总，脚本已于2026年10月22日核验：
 
 | 指标 | 五折均值 | 折间标准差（ddof=0） |
 | --- | ---: | ---: |
@@ -87,7 +87,40 @@
 
 CV结果中的`test_accuracy`、`test_macro_f1`表示当轮验证折成绩，不是保留的36条最终测试成绩。五折均值与原29条固定验证分数的评价安排不同，不能直接按数值大小判断哪次更好；折间标准差也不能直接当作置信区间。
 
-现有CSV已读回核对行数、折号、样本数和分数范围。开发集标签索引对齐、五轮验证位置恰好覆盖一次及独立新终端复跑的完成情况尚未确认，以上结果记录不替代最终验收。
+2026年10月22日已在独立源码副本的新Python进程中重跑，退出码0，生成的5行CSV与已提交报告一致；另经运行时核验确认开发集标签索引对齐、五轮验证位置恰好覆盖142条各一次、每折Pipeline及Scaler仅拟合对应训练折，36条最终测试未使用。单模型CV追加任务通过验收；本次验证使用现有ML环境，未验证全新机器环境重建。
+
+### Wine 四方案同折CV与折外预测
+
+[scr/cv_compare_models.py](scr/cv_compare_models.py)沿用上述四个固定配置，在相同142条开发数据、相同五组分层划分上比较。划分为`StratifiedKFold(n_splits=5, shuffle=True, random_state=2026)`，主指标为Macro-F1，Accuracy辅助；标准差使用`ddof=0`。
+
+每个方案调用一次`cross_validate`，共拟合20个折模型。逻辑回归的Scaler只学习当轮训练折；通过`return_estimator=True`保留折模型，后续预测对应验证成员时直接复用。
+
+| 方案 | Accuracy均值 | 折间标准差 | Macro-F1均值 | 折间标准差 |
+| --- | ---: | ---: | ---: | ---: |
+| Dummy | 0.4012 | 0.0103 | 0.1909 | 0.0035 |
+| LogisticRegression | 0.9719 | 0.0259 | 0.9721 | 0.0261 |
+| Tree_depth3 | 0.9296 | 0.0491 | 0.9312 | 0.0475 |
+| Tree_unrestricted | 0.9153 | 0.0473 | 0.9185 | 0.0466 |
+
+输出保存在`reports/cv_model_comparison/`：
+
+- [fold_metrics.csv](reports/cv_model_comparison/fold_metrics.csv)：20行，每方案5折，含折号、训练／验证人数和两项分数。
+- [summary.csv](reports/cv_model_comparison/summary.csv)：4行，含每方案的均值与总体标准差；逻辑回归五折结果复现原单模型实验。
+- [oof_predictions.csv](reports/cv_model_comparison/oof_predictions.csv)：142行、7列，保留Wine原索引、验证折号、真实类别和四列预测，整行按开发集原顺序排列。每条预测来自未使用该样本训练的对应折模型。
+
+控制台输出逻辑回归完整折外混淆矩阵，行是真实类别、列是预测类别，顺序均为`[0,1,2]`：
+
+```text
+[[46,  1,  0],
+ [ 0, 55,  2],
+ [ 0,  1, 37]]
+```
+
+矩阵合计142条，正确138条；整体折外Accuracy为0.9718。折外整体指标与五折分数均值的汇总方式不同，不能混为同一个数值。原索引134上两棵树正确、逻辑回归错误，150上相反，错误不完全重合。
+
+根据本次CV，现有标准化逻辑回归可作为后续候选；一次小数据五折排名不证明稳定优势，折间标准差不是置信区间。候选尚未冻结，最终36条没有参与拟合、预测、评分或方案选择。
+
+2026年10月29日在独立源码副本的新Python进程中重跑并核验，退出码0；3张CSV的20／4／142行、统计及预测对应关系与现有报告一致。使用现有ML环境，未执行参数搜索、最终测试评分或全新机器环境重建。
 
 ### Boston Housing 数据探索
 
@@ -134,7 +167,7 @@ x_mean_axis=1: [0.5 2.5 4.5]
 
 数组脚本默认学习率为 `0.01`，单步更新后MSE由382降至149.1488。相同数据、每次零初始化的实测对照中，学习率 `0.1` 时MSE由382升至2940.08，说明过大的步长可能使训练损失增加；这些单步结果不代表模型的泛化表现。
 
-> 当前项目已有单步梯度下降、四方案比较、验证预测对照和单模型五折CV；最终测试集继续保留，尚未配置自动化测试框架。
+> 当前项目已有单步梯度下降、固定划分四方案比较、单模型及四方案同折CV、折外预测和混淆矩阵；最终测试集继续保留，尚未配置自动化测试框架。
 
 ## 可视化结果
 
@@ -172,6 +205,10 @@ ml-foundation/
 │   │   └── validation_predictions.csv
 │   ├── cross_validation/
 │   │   └── fold_metrics.csv
+│   ├── cv_model_comparison/
+│   │   ├── fold_metrics.csv
+│   │   ├── oof_predictions.csv
+│   │   └── summary.csv
 │   ├── decision_tree/
 │   │   ├── metrics.csv
 │   │   └── tree_rules.txt
@@ -187,6 +224,7 @@ ml-foundation/
 │   ├── baseline_review.py
 │   ├── compare_models.py
 │   ├── cv_baseline.py
+│   ├── cv_compare_models.py
 │   ├── tree_baseline.py
 │   └── train.py
 ├── environment.yml
@@ -228,6 +266,7 @@ python scr/baseline_review.py
 python scr/tree_baseline.py
 python scr/compare_models.py
 python scr/cv_baseline.py
+python scr/cv_compare_models.py
 python exercises/exercises.py
 python "exercises/数组练习.py"
 ```
@@ -243,6 +282,7 @@ $env:MPLBACKEND = 'Agg'
 & 'D:\conda_envs\ML\python.exe' scr/tree_baseline.py
 & 'D:\conda_envs\ML\python.exe' scr/compare_models.py
 & 'D:\conda_envs\ML\python.exe' scr/cv_baseline.py
+& 'D:\conda_envs\ML\python.exe' scr/cv_compare_models.py
 & 'D:\conda_envs\ML\python.exe' exercises/exercises.py
 & 'D:\conda_envs\ML\python.exe' 'exercises/数组练习.py'
 ```
@@ -250,4 +290,4 @@ $env:MPLBACKEND = 'Agg'
 - `PYTHONIOENCODING=utf-8` 用于指定中文输出编码。
 - `MPLBACKEND=Agg` 让绘图脚本在无图形界面的环境中直接保存图片。
 - 命令顺序执行；重复运行会覆盖对应的同名报告和图片。
-- 比较结果可单独重跑`python scr/compare_models.py`，五折结果可单独重跑`python scr/cv_baseline.py`；旧脚本未改动时无需为此重跑全部练习。
+- 固定划分比较可单独重跑`python scr/compare_models.py`；单模型CV用`python scr/cv_baseline.py`，四方案同折CV与折外预测用`python scr/cv_compare_models.py`。旧脚本未改动时无需为此重跑全部练习。
