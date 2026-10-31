@@ -1,0 +1,2 @@
+model,split,n_samples,accuracy,macro_f1
+LogisticRegression,final_test,36,0.9722222222222222,0.974320987654321
