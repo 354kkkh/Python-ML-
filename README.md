@@ -2,7 +2,7 @@
 
 一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照、单模型及四方案五折交叉验证、折外预测，以及 Seaborn/Matplotlib 可视化。
 
-## 学习进度（更新至2026-10-31）
+## 学习进度（更新至2026-11-04）
 
 ### Wine 数据集探索
 
@@ -181,7 +181,28 @@ x_mean_axis=1: [0.5 2.5 4.5]
 
 数组脚本默认学习率为 `0.01`，单步更新后MSE由382降至149.1488。相同数据、每次零初始化的实测对照中，学习率 `0.1` 时MSE由382升至2940.08，说明过大的步长可能使训练损失增加；这些单步结果不代表模型的泛化表现。
 
-> 当前项目已有单步梯度下降、固定划分四方案比较、单模型及四方案同折CV、折外预测，以及冻结逻辑回归方案的最终测试结果；尚未配置自动化测试框架。
+### NumPy 多步梯度下降与库模型对照
+
+[exercises/gradient_descent_loop.py](exercises/gradient_descent_loop.py)沿用3条、2个特征的微型数据及标签`[7,16,29]`，从浮点零参数开始，以学习率`0.01`更新500次。每轮两组梯度由同一旧误差计算，更新参数后记录MSE；初始MSE为382，第1步为149.1488。
+
+在相同数据和顺序上拟合一次`LinearRegression(fit_intercept=True)`，与NumPy模型使用相同训练MSE口径，不加标准化或正则化：
+
+| 模型 | 训练样本数 | 训练MSE |
+| --- | ---: | ---: |
+| NumPy_GD（500步） | 3 | 0.88920076 |
+| LinearRegression | 3 | 0.88888889 |
+
+输出保存在`reports/gradient_descent/`：
+
+- [loss_history.csv](reports/gradient_descent/loss_history.csv)：501行，步号0—500，包含初始及每次更新后的MSE。
+- [prediction_comparison.csv](reports/gradient_descent/prediction_comparison.csv)：3行，包含原位置、真实值及两种预测。
+- [metrics.csv](reports/gradient_descent/metrics.csv)：2行，包含模型名、样本数及训练MSE。
+
+有限500步的预测与库结果接近，但不要求完全相同。两列特征满足`x[:,1]=x[:,0]+1`，加入截距后参数不唯一，因此比较预测和MSE，不要求权重、偏置逐项一致；训练损失下降也不证明泛化。
+
+2026年11月4日在独立源码副本中，从项目根目录与另一工作目录分别启动新Python进程，退出码均为0；三张CSV均与现有报告一致，重算MSE正确，输出位置不随工作目录变化。本次使用现有ML环境，未重跑Wine实验。
+
+> 当前项目已有单步及500步梯度下降、LinearRegression训练MSE对照、固定划分四方案比较、单模型及四方案同折CV、折外预测，以及冻结逻辑回归方案的最终测试结果；尚未配置自动化测试框架。
 
 ## 可视化结果
 
@@ -207,6 +228,7 @@ ml-foundation/
 │   └── Boston Housing Data.csv
 ├── exercises/
 │   ├── exercises.py
+│   ├── gradient_descent_loop.py
 │   └── 数组练习.py
 ├── reports/
 │   ├── baseline/
@@ -232,6 +254,10 @@ ml-foundation/
 │   │   ├── frozen_config.md
 │   │   ├── metrics.csv
 │   │   └── test_predictions.csv
+│   ├── gradient_descent/
+│   │   ├── loss_history.csv
+│   │   ├── metrics.csv
+│   │   └── prediction_comparison.csv
 │   ├── model_comparison/
 │   │   ├── metrics.csv
 │   │   └── validation_predictions.csv
@@ -288,6 +314,7 @@ python scr/cv_baseline.py
 python scr/cv_compare_models.py
 python exercises/exercises.py
 python "exercises/数组练习.py"
+python exercises/gradient_descent_loop.py
 ```
 
 也可以使用当前机器的解释器直接运行，无需激活环境：
@@ -304,10 +331,12 @@ $env:MPLBACKEND = 'Agg'
 & 'D:\conda_envs\ML\python.exe' scr/cv_compare_models.py
 & 'D:\conda_envs\ML\python.exe' exercises/exercises.py
 & 'D:\conda_envs\ML\python.exe' 'exercises/数组练习.py'
+& 'D:\conda_envs\ML\python.exe' exercises/gradient_descent_loop.py
 ```
 
 - `PYTHONIOENCODING=utf-8` 用于指定中文输出编码。
 - `MPLBACKEND=Agg` 让绘图脚本在无图形界面的环境中直接保存图片。
 - 命令顺序执行；重复运行会覆盖对应的同名报告和图片。
 - 固定划分比较可单独重跑`python scr/compare_models.py`；单模型CV用`python scr/cv_baseline.py`，四方案同折CV与折外预测用`python scr/cv_compare_models.py`。旧脚本未改动时无需为此重跑全部练习。
+- 本周NumPy循环及库模型对照可单独运行`python exercises/gradient_descent_loop.py`；结果写入`reports/gradient_descent/`。
 - 冻结方案的最终评估命令为`python scr/final_evaluate.py`；它会重新拟合相同配置并覆盖该目录的指标和预测。完全相同方案的重复运行只作复现核对，不能据最终测试成绩改配置后反复挑选结果。

@@ -1,0 +1,3 @@
+model,n_samples,mse
+NumPy_GD,3,0.8892007642468166
+LinearRegression,3,0.8888888888888866
