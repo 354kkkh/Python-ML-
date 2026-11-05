@@ -2,7 +2,7 @@
 
 一个记录机器学习基础学习过程的 Python 项目，内容涵盖 NumPy 数组运算与梯度下降、Pandas 数据探索、训练集划分、分类基线与决策树复杂度对照、单模型及四方案五折交叉验证、折外预测，以及 Seaborn/Matplotlib 可视化。
 
-## 学习进度（更新至2026-11-04）
+## 学习进度（更新至2026-11-05）
 
 ### Wine 数据集探索
 
@@ -202,7 +202,15 @@ x_mean_axis=1: [0.5 2.5 4.5]
 
 2026年11月4日在独立源码副本中，从项目根目录与另一工作目录分别启动新Python进程，退出码均为0；三张CSV均与现有报告一致，重算MSE正确，输出位置不随工作目录变化。本次使用现有ML环境，未重跑Wine实验。
 
-> 当前项目已有单步及500步梯度下降、LinearRegression训练MSE对照、固定划分四方案比较、单模型及四方案同折CV、折外预测，以及冻结逻辑回归方案的最终测试结果；尚未配置自动化测试框架。
+### NumPy中心差分梯度核对
+
+[exercises/gradient_check.py](exercises/gradient_check.py)沿用微型数据和MSE，使用`float64`、差分步长`h=1e-5`，在零参数及`w=[0.5,-0.25], b=1.0`两点分别核对w0、w1和b。每次只扰动一个参数，正负扰动使用独立权重副本，与手写解析梯度比较。
+
+[gradient_check.csv](reports/gradient_check/gradient_check.csv)共6行，记录参数标识、解析梯度、数值梯度、绝对误差及通过标记。固定`atol=1e-6, rtol=1e-5`，6项全部通过，最大绝对误差约`5.75e-9`。11月5日新Python进程在独立源码副本重跑退出码0，CSV与现有报告一致。
+
+该核对只检查指定数据和参数点上的导数实现，不证明训练收敛或泛化；原500步训练报告与Wine最终评估保持独立。
+
+> 当前项目已有单步及500步梯度下降、LinearRegression训练MSE对照、中心差分梯度核对、固定划分四方案比较、单模型及四方案同折CV、折外预测，以及冻结逻辑回归方案的最终测试结果；尚未配置自动化测试框架。
 
 ## 可视化结果
 
@@ -228,6 +236,7 @@ ml-foundation/
 │   └── Boston Housing Data.csv
 ├── exercises/
 │   ├── exercises.py
+│   ├── gradient_check.py
 │   ├── gradient_descent_loop.py
 │   └── 数组练习.py
 ├── reports/
@@ -254,6 +263,8 @@ ml-foundation/
 │   │   ├── frozen_config.md
 │   │   ├── metrics.csv
 │   │   └── test_predictions.csv
+│   ├── gradient_check/
+│   │   └── gradient_check.csv
 │   ├── gradient_descent/
 │   │   ├── loss_history.csv
 │   │   ├── metrics.csv
@@ -315,6 +326,7 @@ python scr/cv_compare_models.py
 python exercises/exercises.py
 python "exercises/数组练习.py"
 python exercises/gradient_descent_loop.py
+python exercises/gradient_check.py
 ```
 
 也可以使用当前机器的解释器直接运行，无需激活环境：
@@ -332,6 +344,7 @@ $env:MPLBACKEND = 'Agg'
 & 'D:\conda_envs\ML\python.exe' exercises/exercises.py
 & 'D:\conda_envs\ML\python.exe' 'exercises/数组练习.py'
 & 'D:\conda_envs\ML\python.exe' exercises/gradient_descent_loop.py
+& 'D:\conda_envs\ML\python.exe' exercises/gradient_check.py
 ```
 
 - `PYTHONIOENCODING=utf-8` 用于指定中文输出编码。
@@ -339,4 +352,5 @@ $env:MPLBACKEND = 'Agg'
 - 命令顺序执行；重复运行会覆盖对应的同名报告和图片。
 - 固定划分比较可单独重跑`python scr/compare_models.py`；单模型CV用`python scr/cv_baseline.py`，四方案同折CV与折外预测用`python scr/cv_compare_models.py`。旧脚本未改动时无需为此重跑全部练习。
 - 本周NumPy循环及库模型对照可单独运行`python exercises/gradient_descent_loop.py`；结果写入`reports/gradient_descent/`。
+- 中心差分梯度核对可单独运行`python exercises/gradient_check.py`；结果写入`reports/gradient_check/gradient_check.csv`，无需重跑其他实验。
 - 冻结方案的最终评估命令为`python scr/final_evaluate.py`；它会重新拟合相同配置并覆盖该目录的指标和预测。完全相同方案的重复运行只作复现核对，不能据最终测试成绩改配置后反复挑选结果。
